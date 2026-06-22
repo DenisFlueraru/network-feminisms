@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Network Feminisms &amp; Convivial Technologies</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --black:#000000;
+    --white:#FFFFFF;
+    --gray:#8A95A5;
+    --pink:#FF007F;
+    --content:#E5E7EB;
+    --margin:50px;
+    /* uniform, responsive bug size ~ matches the reference (≈40% of viewport height) */
+    --bugsize:clamp(150px, 40vh, 24vw);
+  }
+
+  *{ box-sizing:border-box; margin:0; padding:0; }
+
+  html,body{ height:100%; }
+
+  body{
+    background:var(--black);
+    color:var(--white);
+    font-family:"Space Mono", monospace;
+    overflow:hidden;
+    position:relative;
+    width:100%;
+    height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ---------------- HEADER (top, centered) ---------------- */
+  .header{
+    position:absolute;
+    top:var(--margin);
+    left:50%;
+    transform:translateX(-50%);
+    text-align:center;
+    width:calc(100% - (var(--margin) * 2));
+    z-index:20;
+    pointer-events:none;
+  }
+
+  .title{
+    font-size:28px;
+    font-weight:700;
+    color:var(--white);
+    margin-bottom:10px;
+    line-height:1.25;
+  }
+
+  .status{
+    font-size:14px;
+    font-weight:400;
+    color:var(--gray);
+    margin-bottom:30px;
+    line-height:1.3;
+  }
+
+  .prompt{
+    font-size:15px;
+    font-weight:700;
+    color:var(--pink);
+    text-shadow:0 0 8px rgba(255,0,127,0.55);
+    line-height:1.4;
+    min-height:1.4em;
+  }
+  /* quick neon power-on blink whenever the line changes */
+  .prompt.flicker{ animation:neonFlicker 0.34s steps(1,end) 1; }
+  @keyframes neonFlicker{
+    0%  { opacity:0.15; text-shadow:none; }
+    20% { opacity:1;    text-shadow:0 0 12px rgba(255,0,127,0.9); }
+    40% { opacity:0.3;  text-shadow:none; }
+    65% { opacity:1;    text-shadow:0 0 14px rgba(255,0,127,1); }
+    100%{ opacity:1; }
+  }
+  /* the blinking terminal cursor */
+  .cursor{
+    display:inline-block;
+    color:var(--pink);
+    font-weight:700;
+    animation:blink 1s steps(1) infinite;
+  }
+  @keyframes blink{ 50%{ opacity:0; } }
+
+  /* ---------------- BUGS ---------------- */
+  .bug-slot{
+    position:absolute;
+    width:var(--bugsize);
+    height:var(--bugsize);
+    transform:translate(-50%,-50%);
+    z-index:10;
+    cursor:pointer;
+  }
+  .bug-float{
+    position:relative;
+    width:100%;
+    height:100%;
+    animation:float var(--dur,5s) ease-in-out infinite;
+    animation-delay:var(--delay,0s);
+    will-change:transform;
+  }
+  @keyframes float{
+    0%,100%{ transform:translateY(0) scale(1); }
+    50%    { transform:translateY(-7px) scale(1.04); }
+  }
+  .bug-float img,
+  .bug-float video{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit:contain;
+    display:block;
+    user-select:none;
+    -webkit-user-drag:none;
+  }
+  .bug-float video{
+    opacity:0;
+    transition:opacity 0.12s linear;
+  }
+  .bug-float.playing video{ opacity:1; }
+  .bug-float.playing img{ opacity:0; transition:opacity 0.12s linear; }
+
+  /* ---------------- INFO BUTTON (bottom-right) ---------------- */
+  .info-btn{
+    position:absolute;
+    bottom:var(--margin);
+    right:var(--margin);
+    font-family:inherit;
+    font-size:15px;
+    font-weight:700;
+    color:var(--gray);
+    background:none;
+    border:none;
+    letter-spacing:0.5px;
+    z-index:20;
+    transition:color 0.18s ease;
+  }
+  .info-btn:hover{ cursor:pointer; color:var(--pink); }
+  .info-btn:focus-visible{ outline:1px solid var(--pink); outline-offset:6px; }
+
+  /* ---------------- MODAL ---------------- */
+  .overlay{
+    position:fixed;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    backdrop-filter:brightness(70%);
+    -webkit-backdrop-filter:brightness(70%);
+    opacity:0;
+    pointer-events:none;
+    transition:opacity 0.2s ease-in-out;
+    z-index:100;
+  }
+  .overlay.open{ opacity:1; pointer-events:auto; }
+
+  .modal{
+    position:relative;
+    width:min(1000px, calc(100vw - 40px));
+    height:min(650px, calc(100vh - 40px));
+    background:var(--black);
+    border:2px solid var(--pink);
+    padding:50px;
+    overflow-y:auto;
+    /* thin styled scrollbar */
+    scrollbar-width:thin;
+    scrollbar-color:var(--pink) var(--black);
+  }
+  .modal::-webkit-scrollbar{ width:8px; }
+  .modal::-webkit-scrollbar-track{ background:var(--black); }
+  .modal::-webkit-scrollbar-thumb{ background:var(--pink); border-radius:0; }
+
+  .modal-head{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:20px;
+    margin-bottom:30px;
+  }
+  .modal-title{
+    font-size:24px;
+    font-weight:700;
+    color:var(--white);
+  }
+  .modal-close{
+    font-family:inherit;
+    font-size:16px;
+    font-weight:700;
+    color:var(--pink);
+    background:none;
+    border:none;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .modal-close:focus-visible{ outline:1px solid var(--pink); outline-offset:4px; }
+
+  .modal-body p{
+    font-size:16px;
+    font-weight:400;
+    color:var(--content);
+    line-height:24px;
+  }
+  .modal-body p + p{ margin-top:24px; }
+
+  /* ---------------- RESPONSIVE FALLBACK ---------------- */
+  @media (max-width:640px){
+    .title{ font-size:20px; }
+    .header{ width:calc(100% - 40px); }
+    .modal{ padding:28px; }
+    .modal-head{ margin-bottom:20px; }
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    .bug-float{ animation:none; }
+    .cursor{ animation:none; }
+    .prompt.flicker{ animation:none; }
+    .overlay{ transition:none; }
+  }
+</style>
+</head>
+<body>
+
+  <header class="header">
+    <div class="title">&#9660; NETWORK FEMINISMS &amp; CONVIVIAL TECHNOLOGIES //</div>
+    <div class="status">[SYSTEM STATUS: ONLINE] // Each node alters the collective balance.</div>
+    <div class="prompt"><span id="promptText"></span><span class="cursor">_</span></div>
+  </header>
+
+  <!-- bugs injected here by JS -->
+  <main id="grid" aria-hidden="true"></main>
+
+  <button class="info-btn" id="infoBtn">[ INFO ]</button>
+
+  <!-- modal -->
+  <div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal" id="modal">
+      <div class="modal-head">
+        <div class="modal-title" id="modalTitle">&#9660; INFO //</div>
+        <button class="modal-close" id="modalClose" aria-label="Close">[ X ]</button>
+      </div>
+      <div class="modal-body">
+        <p>This interactive interface is a technofeminist ecosystem inspired by Ivan Illich&rsquo;s Tools for Conviviality and decentralized cyber-feminism. By turning away from the rigid, extractive infrastructures of corporate monopolies and digital enclosures, this project re-imagines the internet as an organic, living anarchy.</p>
+        <p>Here, digital tools are morphed into bio-mechanical organisms. They are not passive products to be consumed, but autonomous nodes. In a convivial network, power is never fixed, central, or hierarchical; it is a shared, shifting relation.</p>
+        <p>Every interaction you trigger ripples through the entire grid. By disturbing one organism, you alter the collective balance&mdash;proving that inside an organic infrastructure, we are all radically interdependent.</p>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* bug layout — matches the reference composition: one centered, two flanking, two below */
+  const BUGS = [
+    { id:4, x:12.8, y:42.6, dur:5.6, delay:0.0 },
+    { id:1, x:50.0, y:42.0, dur:5.0, delay:0.8 },
+    { id:3, x:86.7, y:42.0, dur:5.8, delay:1.5 },
+    { id:2, x:28.7, y:78.5, dur:4.8, delay:2.2 },
+    { id:5, x:69.8, y:78.3, dur:5.3, delay:2.9 },
+  ];
+  const VARIANTS = 5; // bugN01 .. bugN05
+
+  const grid = document.getElementById("grid");
+  const nodes = []; // { el, float, img, video, conf }
+
+  BUGS.forEach(function(b){
+    const slot = document.createElement("div");
+    slot.className = "bug-slot";
+    slot.style.left = b.x + "%";
+    slot.style.top  = b.y + "%";
+
+    const float = document.createElement("div");
+    float.className = "bug-float";
+    float.style.setProperty("--dur", b.dur + "s");
+    float.style.setProperty("--delay", b.delay + "s");
+
+    const img = document.createElement("img");
+    img.src = "assets/bug" + b.id + ".png";
+    img.alt = "";
+
+    const video = document.createElement("video");
+    video.muted = true;
+    video.playsInline = true;
+    video.setAttribute("playsinline", "");
+    video.preload = "none";
+
+    float.appendChild(img);
+    float.appendChild(video);
+    slot.appendChild(float);
+    grid.appendChild(slot);
+
+    const node = { el:slot, float:float, img:img, video:video, conf:b };
+    nodes.push(node);
+
+    // click -> ripple through the whole network
+    slot.addEventListener("click", function(){ triggerRipple(node); });
+
+    // hover -> rewrite the prompt line
+    slot.addEventListener("mouseenter", onBugEnter);
+    slot.addEventListener("mouseleave", onBugLeave);
+
+    // end of clip -> back to resting png
+    video.addEventListener("ended", function(){ rest(node); });
+  });
+
+  function randVariant(id){
+    const n = Math.floor(Math.random() * VARIANTS) + 1; // 1..5
+    return "assets/bug" + id + "0" + n + ".webm";
+  }
+
+  function play(node){
+    const v = node.video;
+    v.src = randVariant(node.conf.id);
+    v.currentTime = 0;
+    node.float.classList.add("playing");
+    const p = v.play();
+    if (p && p.catch){ p.catch(function(){ rest(node); }); }
+  }
+
+  function rest(node){
+    node.float.classList.remove("playing");
+  }
+
+  // clicked node fires instantly; the others propagate outward by distance, 0.2s apart
+  function triggerRipple(clicked){
+    play(clicked);
+    const others = nodes
+      .filter(function(n){ return n !== clicked; })
+      .map(function(n){
+        const dx = n.conf.x - clicked.conf.x;
+        const dy = n.conf.y - clicked.conf.y;
+        return { node:n, d:Math.sqrt(dx*dx + dy*dy) };
+      })
+      .sort(function(a,b){ return a.d - b.d; });
+
+    others.forEach(function(o, i){
+      setTimeout(function(){ play(o.node); }, (i + 1) * 200);
+    });
+  }
+
+  /* ---------- prompt line: instant swap + a quick neon blink ---------- */
+  const DEFAULT = "\u2192 INITIATE PERTURBATION: CLICK TO DISRUPT THE NETWORK AND SHIFT POWER DYNAMICS ";
+  const WARNING = "\u2192 WARNING: ALTERING ORGANISM BEHAVIOR... EACH NODE IS AFFECTING THE OTHER ";
+  const promptEl = document.getElementById("promptText");
+  const promptLine = document.querySelector(".prompt");
+  let hoverCount = 0;
+
+  function setPrompt(target){
+    if (promptEl.textContent === target) return;
+    promptEl.textContent = target;
+    promptLine.classList.remove("flicker");
+    void promptLine.offsetWidth;        // force reflow so the animation restarts
+    promptLine.classList.add("flicker");
+  }
+
+  function onBugEnter(){
+    hoverCount++;
+    if (hoverCount === 1) setPrompt(WARNING);
+  }
+  function onBugLeave(){
+    hoverCount = Math.max(0, hoverCount - 1);
+    if (hoverCount === 0) setPrompt(DEFAULT);
+  }
+
+  /* ---------- modal ---------- */
+  const overlay = document.getElementById("overlay");
+  const infoBtn = document.getElementById("infoBtn");
+  const closeBtn = document.getElementById("modalClose");
+  const modal = document.getElementById("modal");
+
+  function openModal(){ overlay.classList.add("open"); }
+  function closeModal(){ overlay.classList.remove("open"); }
+
+  infoBtn.addEventListener("click", openModal);
+  closeBtn.addEventListener("click", closeModal);
+  overlay.addEventListener("click", function(e){
+    if (e.target === overlay) closeModal();   // click outside the window closes it
+  });
+  document.addEventListener("keydown", function(e){
+    if (e.key === "Escape") closeModal();
+  });
+
+  /* ---------- boot ---------- */
+  // type the default prompt once fonts/layout settle
+  window.addEventListener("load", function(){
+    setPrompt(DEFAULT);
+    // gently warm the cache so the first ripple plays smoothly
+    nodes.forEach(function(n){
+      const warm = document.createElement("video");
+      warm.preload = "auto";
+      warm.muted = true;
+      warm.src = "assets/bug" + n.conf.id + "01.webm";
+    });
+  });
+})();
+</script>
+</body>
+</html>
